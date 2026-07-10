@@ -13,8 +13,8 @@ Every markdown note starts as **not synthesized**. You mark it yourself when you
 │    Modelling The Future   ← normal      │  (already synthesized)
 └─────────────────────────────────────────┘
 
-Status bar (bottom):  ○ Not synthesized
-                      or  ✓ Synthesized · 10 Jul 2026
+Status bar (bottom):  ○ Not synthesized   (yellow)
+                      or  ✓ Synthesized · 10 Jul 2026   (green)
 Click the status bar text to toggle.
 ```
 

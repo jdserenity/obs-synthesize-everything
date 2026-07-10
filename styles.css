@@ -11,10 +11,17 @@
 }
 
 .synthesize-everything-status.is-synthesized {
-  color: var(--text-muted);
+  color: var(--color-green, var(--text-success, #2ecc71));
 }
 
-/* File explorer: yellow titles for notes not yet synthesized */
-.nav-file-title.se-not-synthesized .nav-file-title-content {
+/*
+  File explorer: yellow titles for notes not yet synthesized.
+  Specificity mirrors the community "file-color" plugin so themes do not override.
+  Class lives on the outer .nav-file row and/or the .nav-file-title itself.
+*/
+.workspace-leaf-content[data-type="file-explorer"] .nav-files-container .se-not-synthesized > .nav-file-title,
+.workspace-leaf-content[data-type="file-explorer"] .nav-files-container .se-not-synthesized > .nav-file-title > .nav-file-title-content,
+.workspace-leaf-content[data-type="file-explorer"] .nav-files-container .nav-file-title.se-not-synthesized,
+.workspace-leaf-content[data-type="file-explorer"] .nav-files-container .nav-file-title.se-not-synthesized > .nav-file-title-content {
   color: var(--text-warning, #d4a017);
 }

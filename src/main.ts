@@ -1,4 +1,5 @@
 import { MarkdownView, Plugin, TAbstractFile, TFile } from "obsidian";
+import { applyTintClass, shouldTintPath } from "./explorer-tint";
 import {
   deletePath,
   emptyData,
@@ -16,10 +17,14 @@ import {
 const EXPLORER_CLASS = "se-not-synthesized";
 const STATUS_CLASS = "synthesize-everything-status";
 
+type FileItemLike = { el?: HTMLElement; selfEl?: HTMLElement };
+type FileExplorerViewLike = { fileItems?: Record<string, FileItemLike> };
+
 export default class SynthesizeEverythingPlugin extends Plugin {
   data: SynthesisData = emptyData();
   private statusEl: HTMLElement | null = null;
   private explorerTimer: number | null = null;
+  private explorerObserver: MutationObserver | null = null;
 
   async onload(): Promise<void> {
     this.data = normalizeData(await this.loadData());
@@ -66,11 +71,15 @@ export default class SynthesizeEverythingPlugin extends Plugin {
 
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.refreshStatus()));
     this.registerEvent(this.app.workspace.on("file-open", () => this.refreshStatus()));
-    this.registerEvent(this.app.workspace.on("layout-change", () => this.scheduleExplorerRefresh()));
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => {
+        this.scheduleExplorerRefresh();
+        this.attachExplorerObserver();
+      }),
+    );
 
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
-        if (!(file instanceof TFile) && !isMarkdownPath(oldPath)) return;
         const newPath = file.path;
         if (!isMarkdownPath(oldPath) && !isMarkdownPath(newPath)) return;
         this.data = renamePath(this.data, oldPath, newPath);
@@ -97,11 +106,14 @@ export default class SynthesizeEverythingPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       this.refreshStatus();
       this.scheduleExplorerRefresh();
+      this.attachExplorerObserver();
     });
   }
 
   onunload(): void {
     if (this.explorerTimer != null) window.clearTimeout(this.explorerTimer);
+    this.explorerObserver?.disconnect();
+    this.explorerObserver = null;
     this.clearExplorerClasses();
   }
 
@@ -160,36 +172,63 @@ export default class SynthesizeEverythingPlugin extends Plugin {
     }, 50);
   }
 
-  /** Tint unsynthesized markdown titles in every open file explorer. */
+  /**
+   * Watch the file tree so expanding folders (new title nodes) re-applies tints.
+   * childList only — attribute toggles from our classList must not re-fire this.
+   */
+  private attachExplorerObserver(): void {
+    this.explorerObserver?.disconnect();
+    this.explorerObserver = new MutationObserver(() => this.scheduleExplorerRefresh());
+    const containers = document.querySelectorAll(
+      '.workspace-leaf-content[data-type="file-explorer"] .nav-files-container',
+    );
+    containers.forEach((el) => {
+      this.explorerObserver!.observe(el, { childList: true, subtree: true });
+    });
+  }
+
+  /**
+   * Tint unsynthesized markdown titles.
+   * Uses fileItems when present (same internal map as file-color), plus data-path DOM
+   * so we still hit rows if the map shape differs.
+   */
   private refreshExplorer(): void {
     const leaves = this.app.workspace.getLeavesOfType("file-explorer");
     for (const leaf of leaves) {
-      const view = leaf.view as unknown as {
-        fileItems?: Record<string, { el?: HTMLElement; selfEl?: HTMLElement }>;
-      };
+      const view = leaf.view as unknown as FileExplorerViewLike;
       const items = view.fileItems;
       if (!items) continue;
       for (const [path, item] of Object.entries(items)) {
-        const el = item?.el ?? item?.selfEl;
-        if (!el) continue;
-        const shouldTint = isMarkdownPath(path) && !this.data.entries[path]?.synthesizedAt;
-        el.classList.toggle(EXPLORER_CLASS, shouldTint);
+        const row = item?.el ?? item?.selfEl;
+        if (!row) continue;
+        const title =
+          row.matches?.(".nav-file-title")
+            ? row
+            : row.querySelector?.(".nav-file-title");
+        applyTintClass(EXPLORER_CLASS, shouldTintPath(this.data, path), row, title ?? undefined);
       }
     }
+
+    // data-path fallback / second pass for any titles fileItems missed
+    const titles = document.querySelectorAll(
+      '.workspace-leaf-content[data-type="file-explorer"] .nav-file-title[data-path]',
+    );
+    titles.forEach((title) => {
+      const path = title.getAttribute("data-path");
+      if (!path) return;
+      const row = title.closest(".nav-file");
+      applyTintClass(
+        EXPLORER_CLASS,
+        shouldTintPath(this.data, path),
+        row,
+        title,
+      );
+    });
   }
 
   private clearExplorerClasses(): void {
-    const leaves = this.app.workspace.getLeavesOfType("file-explorer");
-    for (const leaf of leaves) {
-      const view = leaf.view as unknown as {
-        fileItems?: Record<string, { el?: HTMLElement; selfEl?: HTMLElement }>;
-      };
-      const items = view.fileItems;
-      if (!items) continue;
-      for (const item of Object.values(items)) {
-        const el = item?.el ?? item?.selfEl;
-        el?.classList.remove(EXPLORER_CLASS);
-      }
-    }
+    document
+      .querySelectorAll(`.${EXPLORER_CLASS}`)
+      .forEach((el) => el.classList.remove(EXPLORER_CLASS));
   }
 }

@@ -29,8 +29,8 @@ Personal Obsidian plugin: **Synthesize Everything**. Tracks which vault notes th
 
 ## UI
 - Status bar for active markdown file:
-  - not synthesized: `○ Not synthesized` (click → mark now)
-  - synthesized: `✓ Synthesized · <short date>` (click → unmark)
+  - not synthesized: `○ Not synthesized` in warning/yellow (click → mark now)
+  - synthesized: `✓ Synthesized · <short date>` in green (click → unmark)
 - Commands (Command Palette):
   - `Toggle synthesized for current note`
   - `Mark current note as synthesized`
