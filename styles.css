@@ -1,0 +1,20 @@
+/* Synthesize Everything */
+
+/* Status bar */
+.synthesize-everything-status {
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.synthesize-everything-status.is-not-synthesized {
+  color: var(--text-warning, #d4a017);
+}
+
+.synthesize-everything-status.is-synthesized {
+  color: var(--text-muted);
+}
+
+/* File explorer: yellow titles for notes not yet synthesized */
+.nav-file-title.se-not-synthesized .nav-file-title-content {
+  color: var(--text-warning, #d4a017);
+}
