@@ -1,0 +1,9 @@
+{
+  "id": "synthesize-everything",
+  "name": "Synthesize Everything",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Track which notes you have synthesized. Unsynthesized notes are flagged on the status bar and tinted yellow in the file explorer.",
+  "author": "jd",
+  "isDesktopOnly": false
+}
